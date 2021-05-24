@@ -10,7 +10,7 @@ TODO
 ## Usage:
 
 ### Command line
-```
+```zsh
 >> python3 src/rov.py 8.8.8.0/24 15169 
 {'irr': 'Valid', 'rpki': 'Valid'}
 
@@ -22,7 +22,7 @@ TODO
 ```
 
 ### In python (recommended for large batches)
-```
+```python
 from rov import ROV
 
 # list of routes we want to validate
