@@ -1,7 +1,7 @@
 # route-origin-validator
 Offline Internet route origin validation using RPKI and IRR databases
 
-This python library is designed for validating a large number of routes in one shot.
+This python library is designed for validating a large number of routes in one shot. It downloads IRR/RPKI databases to avoid network overhead for each query.
 
 ## Installation
 
