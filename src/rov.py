@@ -1,3 +1,4 @@
+import appdirs
 import argparse
 from collections import defaultdict
 import glob
@@ -10,17 +11,19 @@ import urllib.request as request
 from contextlib import closing
 import json
 
+CACHE_DIR = appdirs.user_cache_dir('rov', 'IHR')
 
-IRR_DIR = 'db/irr/'
-IRR_FNAME = '*.db.gz'
-RPKI_DIR = 'db/rpki/'
+IRR_DIR = CACHE_DIR+'/db/irr/'
+IRR_FNAME = '*.gz'
+RPKI_DIR = CACHE_DIR+'/db/rpki/'
 RPKI_FNAME = '*.json'
 
 DEFAULT_IRR_URLS = [
+        # RADB
         'ftp://ftp.radb.net/radb/dbase/altdb.db.gz',
         'ftp://ftp.radb.net/radb/dbase/aoltw.db.gz',
-        'ftp://ftp.radb.net/radb/dbase/arin-nonauth.db.gz',
-        'ftp://ftp.radb.net/radb/dbase/arin.db.gz',
+        #'ftp://ftp.radb.net/radb/dbase/arin-nonauth.db.gz',
+        #'ftp://ftp.radb.net/radb/dbase/arin.db.gz',
         'ftp://ftp.radb.net/radb/dbase/bboi.db.gz',
         'ftp://ftp.radb.net/radb/dbase/bell.db.gz',
         'ftp://ftp.radb.net/radb/dbase/canarie.db.gz',
@@ -38,6 +41,14 @@ DEFAULT_IRR_URLS = [
         'ftp://ftp.radb.net/radb/dbase/risq.db.gz',
         'ftp://ftp.radb.net/radb/dbase/rogers.db.gz',
         'ftp://ftp.radb.net/radb/dbase/tc.db.gz',
+        # RIR
+        'ftp://ftp.arin.net/pub/rr/arin-nonauth.db.gz',
+        'ftp://ftp.arin.net/pub/rr/arin.db.gz',
+        'ftp://ftp.afrinic.net/pub/dbase/afrinic.db.gz',
+        'ftp://ftp.apnic.net/pub/apnic/whois/apnic.db.route.gz',
+        'https://ftp.lacnic.net/lacnic/irr/lacnic.db.gz',
+        'ftp://ftp.ripe.net/ripe/dbase/ripe-nonauth.db.gz',
+        'ftp://ftp.ripe.net/ripe/dbase/ripe.db.gz',
         ]
 DEFAULT_RPKI_URLS = [ 
         'https://rpki.gin.ntt.net/api/export.json'
