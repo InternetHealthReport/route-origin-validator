@@ -41,14 +41,16 @@ DEFAULT_IRR_URLS = [
         'ftp://ftp.radb.net/radb/dbase/risq.db.gz',
         'ftp://ftp.radb.net/radb/dbase/rogers.db.gz',
         'ftp://ftp.radb.net/radb/dbase/tc.db.gz',
-        # RIR
+        # RIRs
         'ftp://ftp.arin.net/pub/rr/arin-nonauth.db.gz',
         'ftp://ftp.arin.net/pub/rr/arin.db.gz',
         'ftp://ftp.afrinic.net/pub/dbase/afrinic.db.gz',
         'ftp://ftp.apnic.net/pub/apnic/whois/apnic.db.route.gz',
         'https://ftp.lacnic.net/lacnic/irr/lacnic.db.gz',
-        'ftp://ftp.ripe.net/ripe/dbase/ripe-nonauth.db.gz',
-        'ftp://ftp.ripe.net/ripe/dbase/ripe.db.gz',
+        'ftp://ftp.ripe.net/ripe/dbase/split/ripe-nonauth.db.route.gz',
+        'ftp://ftp.ripe.net/ripe/dbase/split/ripe-nonauth.db.route6.gz',
+        'ftp://ftp.ripe.net/ripe/dbase/split/ripe.db.route.gz',
+        'ftp://ftp.ripe.net/ripe/dbase/split/ripe.db.route6.gz',
         ]
 DEFAULT_RPKI_URLS = [ 
         'https://rpki.gin.ntt.net/api/export.json'
@@ -114,16 +116,21 @@ class ROV(object):
                                 rec[field] += '\n'+line
                                 continue
 
-                            rnode = self.roas['irr'].search_exact(rec['route'])
-                            if rnode is None:
-                                rnode = self.roas['irr'].add(rec['route'])
-                                rnode.data['asn'] = []
-
                             try:
-                                rnode.data['asn'].append(int(rec['origin'][2:]))
-                                rnode.data['desc'] = rec.get('descr', '') 
-                            except ValueError:
-                                sys.stderr.write(f'Error in {fname}, invalid ASN!\n{rec}\n')
+                                rnode = self.roas['irr'].search_exact(rec['route'])
+                                if rnode is None:
+                                    rnode = self.roas['irr'].add(rec['route'])
+                                    rnode.data['asn'] = []
+
+                                try:
+                                    asn = int(rec['origin'][2:].partition('#')[0])
+                                    rnode.data['asn'].append(asn)
+                                    rnode.data['desc'] = rec.get('descr', '') 
+                                except ValueError:
+                                    sys.stderr.write(f'Error in {fname}, invalid ASN!\n{rec}\n')
+                            except Exception:
+                                import IPython
+                                IPython.embed()
 
                         rec = {}
                         field = ''
@@ -138,7 +145,7 @@ class ROV(object):
                             rec[field] = value.strip()
                         else:
                             # Multiline value
-                            if field in rec:
+                            if field in rec and field in ['descr', 'addr']:
                                 rec[field] += '\n'+line
 
     def lookup(self, prefix: int):
