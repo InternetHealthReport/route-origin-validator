@@ -4,6 +4,8 @@ from collections import defaultdict
 import glob
 import gzip
 import os
+import math
+import portion
 import radix
 import shutil
 import sys
@@ -17,6 +19,8 @@ IRR_DIR = CACHE_DIR+'/db/irr/'
 IRR_FNAME = '*.gz'
 RPKI_DIR = CACHE_DIR+'/db/rpki/'
 RPKI_FNAME = '*.json'
+DELEGATED_DIR = CACHE_DIR+'/db/delegated/'
+DELEGATED_FNAME = '*-stats'
 
 DEFAULT_IRR_URLS = [
         # RADB
@@ -55,21 +59,34 @@ DEFAULT_IRR_URLS = [
 DEFAULT_RPKI_URLS = [ 
         'https://rpki.gin.ntt.net/api/export.json'
         ]
+DEFAULT_DELEGATED_URLS = [ 
+        'https://www.nro.net/wp-content/uploads/delegated-stats/nro-extended-stats'
+        ]
 
 class ROV(object):
 
-    def __init__(self, irr_urls=DEFAULT_IRR_URLS, rpki_urls=DEFAULT_RPKI_URLS):
+    def __init__(self, irr_urls=DEFAULT_IRR_URLS, rpki_urls=DEFAULT_RPKI_URLS, 
+            delegated_urls=DEFAULT_DELEGATED_URLS):
         """Initialize ROV object with databases URLs"""
 
         self.urls = {}
         self.urls[IRR_DIR] = irr_urls
         self.urls[RPKI_DIR] = rpki_urls
+        self.urls[DELEGATED_DIR] = delegated_urls
 
-        self.roas = {'irr': radix.Radix(), 'rpki': radix.Radix()}
+        self.roas = {
+                'irr': radix.Radix(), 
+                'rpki': radix.Radix()
+                }
+        self.delegated = {
+                'prefix': radix.Radix(),
+                'asn': portion.IntervalDict()
+                }
 
     def load_databases(self):
         """Load databases into memory"""
 
+        self.load_delegated()
         self.load_irr()
         self.load_rpki()
 
@@ -90,6 +107,96 @@ class ROV(object):
                     rnode.data['asn'].append(int(rec['asn'][2:]))
                     rnode.data['maxLength'] = rec['maxLength']
                     rnode.data['ta'] = rec['ta']
+
+    def load_delegated(self):
+        """Parse the delegated data, load prefix data in a radix tree and ASN
+        data in a IntervalDict"""
+
+        for fname in glob.glob(DELEGATED_DIR+DELEGATED_FNAME):
+            sys.stderr.write(f'Loading: {fname}\n')
+            # Read delegated-stats file. see documentation:
+            # https://www.nro.net/wp-content/uploads/nro-extended-stats-readme5.txt
+            fields_name = ['registry', 'cc', 'type', 'start', 'value', 'date', 'status']
+
+            with open(fname, 'r') as fd:
+                previous_rec = {f:'' for f in fields_name}
+                start_interval = None
+
+                for line in fd:
+                    # skip comments
+                    if line.strip().startswith('#'):
+                        continue
+
+                    # skip version and summary lines
+                    fields_value = line.split('|')
+                    if len(fields_value) < 8:
+                        continue
+
+                    # parse records
+                    rec = dict( zip(fields_name, fields_value))
+                    rec['value'] = int(rec['value'])
+
+                    # ASN records
+                    if rec['type'] == 'asn':
+                        rec['start'] = int(rec['start'])
+                        # first record
+                        if start_interval is None:
+                            start_interval = rec
+
+                        else:
+                            if( 
+                                previous_rec['registry'] == rec['registry'] and
+                                previous_rec['status'] == rec['status']
+                                and previous_rec['start']+previous_rec['value'] == rec['start']
+                                ):
+
+                                # continue reading the current interval
+                                pass
+
+                            else:
+                                # store the previous interval and start a new one
+                                interval = portion.closed( 
+                                    start_interval['start'],
+                                    previous_rec['start']+previous_rec['value']-1
+                                    )
+                                self.delegated['asn'][interval] = {
+                                        'status': previous_rec['status'],
+                                        'registry': previous_rec['registry']
+                                        }
+
+                                start_interval = rec
+
+                        previous_rec = rec
+
+
+                    # prefix records
+                    elif rec['type'] == 'ipv4' or type == 'ipv6':
+
+                        if previous_rec['type'] == 'asn':
+                            # stored the last ASN interval
+                            interval = portion.closed( 
+                                start_interval['start'],
+                                previous_rec['start']+previous_rec['value']-1
+                                )
+                            self.delegated['asn'][interval] = {
+                                    'status': previous_rec['status'],
+                                    'registry': previous_rec['registry']
+                                    }
+                            start_interval = None
+                            previous_rec = {f:'' for f in fields_name}
+
+                        prefix_len = int(32-math.log2(rec['value']))
+                        prefix = f"{rec['start']}/{prefix_len}"
+                        rnode = self.delegated['prefix'].search_exact(prefix)
+                        if rnode is None:
+                            rnode = self.delegated['prefix'].add(prefix)
+
+                        rnode.data['status'] = rec['status']
+                        rnode.data['prefix'] = prefix
+                        rnode.data['date'] = rec['date']
+                        rnode.data['registry'] = rec['registry']
+                        rnode.data['country'] = rec['cc']
+
 
 
     def load_irr(self):
@@ -164,6 +271,7 @@ class ROV(object):
     def check(self, prefix: str, origin_asn: int):
         """Compute the state of the given prefix, origin ASN pair"""
 
+        # Check routing status
         prefix_in = prefix.strip()
         prefixlen = int(prefix_in.partition('/')[2])
         states = {}
@@ -186,6 +294,15 @@ class ROV(object):
                             states[name] = 'Valid'
                             break
                         
+        # Check status in delegated stats
+        prefix = self.delegated['prefix'].search_best(prefix)
+        asn = self.delegated['asn'].get(int(origin_asn), {'status': 'unknown'})
+
+        states['delegated'] = {
+                'prefix': prefix.data,
+                'asn': asn
+                }
+
         return states
 
 
