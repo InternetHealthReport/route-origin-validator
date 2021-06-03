@@ -112,6 +112,7 @@ class ROV(object):
         """Parse the delegated data, load prefix data in a radix tree and ASN
         data in a IntervalDict"""
 
+        intervals = defaultdict(list)
         for fname in glob.glob(DELEGATED_DIR+DELEGATED_FNAME):
             sys.stderr.write(f'Loading: {fname}\n')
             # Read delegated-stats file. see documentation:
@@ -144,25 +145,24 @@ class ROV(object):
                             start_interval = rec
 
                         else:
-                            if( 
-                                previous_rec['registry'] == rec['registry'] and
-                                previous_rec['status'] == rec['status']
-                                and previous_rec['start']+previous_rec['value'] == rec['start']
-                                ):
+                            if( previous_rec['registry'] == rec['registry']
+                                and previous_rec['status'] == rec['status']
+                                and previous_rec['start']+previous_rec['value'] == rec['start']):
 
                                 # continue reading the current interval
                                 pass
 
                             else:
                                 # store the previous interval and start a new one
+                                key = '|'.join( [
+                                            previous_rec['registry'],
+                                            previous_rec['status']
+                                            ])
                                 interval = portion.closed( 
                                     start_interval['start'],
                                     previous_rec['start']+previous_rec['value']-1
                                     )
-                                self.delegated['asn'][interval] = {
-                                        'status': previous_rec['status'],
-                                        'registry': previous_rec['registry']
-                                        }
+                                intervals[key].append(interval)
 
                                 start_interval = rec
 
@@ -197,6 +197,16 @@ class ROV(object):
                         rnode.data['registry'] = rec['registry']
                         rnode.data['country'] = rec['cc']
 
+
+            # Fast way to populate IntervalDict
+            for value, interval_list in intervals.items():
+
+                registry, status = value.split('|')
+                interval = portion.Interval(*interval_list)
+                self.delegated['asn'][interval] = {
+                    'status': status,
+                    'registry': registry
+                    }
 
 
     def load_irr(self):
@@ -265,6 +275,11 @@ class ROV(object):
             for rnode in rnodes:
                 res[name][rnode.prefix] = rnode.data
 
+        # Check status in delegated stats
+        rnode = self.delegated['prefix'].search_best(prefix)
+        if rnode is not None:
+            res['delegated'] = rnode.data
+
         return res
 
 
@@ -295,11 +310,15 @@ class ROV(object):
                             break
                         
         # Check status in delegated stats
-        prefix = self.delegated['prefix'].search_best(prefix)
-        asn = self.delegated['asn'].get(int(origin_asn), {'status': 'unknown'})
+        rnode = self.delegated['prefix'].search_best(prefix)
+        prefix_data = {'status': 'NotFound'}
+        if rnode is not None:
+            prefix_data = rnode.data
+
+        asn = self.delegated['asn'].get(int(origin_asn), {'status': 'NotFound'})
 
         states['delegated'] = {
-                'prefix': prefix.data,
+                'prefix': prefix_data,
                 'asn': asn
                 }
 
