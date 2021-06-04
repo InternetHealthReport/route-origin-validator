@@ -6,9 +6,12 @@ with open('README.md') as f:
 setup(
     version = '0.0.1',
     name = 'rov',
+    author = 'Romain Fontugne',
+    url = 'https://github.com/InternetHealthReport/route-origin-validator/',
     description="Offline Internet route origin validation using RPKI, IRR, and RIRs delegated databases",
     long_description=readme,
     long_description_content_type="text/markdown",
+    keywords = ['RPKI', 'IRR', 'delegated', 'Internet', 'routing', 'route origin validation'],
     packages = find_packages(),
     install_requires=[
         'appdirs',
