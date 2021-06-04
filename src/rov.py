@@ -233,21 +233,17 @@ class ROV(object):
                                 rec[field] += '\n'+line
                                 continue
 
-                            try:
-                                rnode = self.roas['irr'].search_exact(rec['route'])
-                                if rnode is None:
-                                    rnode = self.roas['irr'].add(rec['route'])
-                                    rnode.data['asn'] = []
+                            rnode = self.roas['irr'].search_exact(rec['route'])
+                            if rnode is None:
+                                rnode = self.roas['irr'].add(rec['route'])
+                                rnode.data['asn'] = []
 
-                                try:
-                                    asn = int(rec['origin'][2:].partition('#')[0])
-                                    rnode.data['asn'].append(asn)
-                                    rnode.data['desc'] = rec.get('descr', '') 
-                                except ValueError:
-                                    sys.stderr.write(f'Error in {fname}, invalid ASN!\n{rec}\n')
-                            except Exception:
-                                import IPython
-                                IPython.embed()
+                            try:
+                                asn = int(rec['origin'][2:].partition('#')[0])
+                                rnode.data['asn'].append(asn)
+                                rnode.data['desc'] = rec.get('descr', '') 
+                            except ValueError:
+                                sys.stderr.write(f'Error in {fname}, invalid ASN!\n{rec}\n')
 
                         rec = {}
                         field = ''
