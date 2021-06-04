@@ -22,7 +22,7 @@ For delegated we expect globally reachable resources to be 'assigned'. Resources
 ### Command line
 The command line interface should be used only for a few queries, each query will reload all databases.
 ```zsh
->> python3 src/rov.py 8.8.8.0/24 15169 
+>> rov 8.8.8.0/24 15169 
 {
     "irr": {
         "status": "Valid",
@@ -57,7 +57,7 @@ The command line interface should be used only for a few queries, each query wil
     }
 }
 
->> python3 src/rov.py 10.1.0.0/16 15169
+>> rov 10.1.0.0/16 15169
 {
     "irr": {
         "status": "NotFound"

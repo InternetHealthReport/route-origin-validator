@@ -4,9 +4,10 @@ with open('README.md') as f:
     readme = f.read()
 
 setup(
-    version = '0.0.1',
+    version = '0.0.2',
     name = 'rov',
     author = 'Romain Fontugne',
+    author_email = 'romain.fontugne@gmail.com',
     url = 'https://github.com/InternetHealthReport/route-origin-validator/',
     description="Offline Internet route origin validation using RPKI, IRR, and RIRs delegated databases",
     long_description=readme,
