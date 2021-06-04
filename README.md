@@ -1,29 +1,91 @@
 # route-origin-validator
-Offline Internet route origin validation using RPKI and IRR databases
+Offline Internet route origin validation using RPKI, IRR, and RIRs delegated databases
 
-This python library is designed for validating a large number of routes in one shot. It downloads IRR/RPKI databases to avoid network overhead for each query.
+This python library is designed for validating a large number of routes in one shot. It downloads IRR, RPKI, and delegated databases to avoid network overhead for each query.
 
 ## Installation
-
-TODO
-
-## Usage:
-
-### Command line
-```zsh
->> python3 src/rov.py 8.8.8.0/24 15169 
-{'irr': 'Valid', 'rpki': 'Valid'}
-
->> python3 src/rov.py 8.8.8.0/25 15169
-{'irr': 'Invalid,more-specific', 'rpki': 'Invalid,more-specific'}
-
->> python3 src/rov.py 1.0.0.0/16 15169
-{'irr': 'NotFound', 'rpki': 'NotFound'}
+ ```
+pip install rov
 ```
 
-### In python (recommended for large batches)
+## Usage:
+Both the command line and python interfaces return status codes for each data
+source.
+For IRR and RPKI the possible status codes are:
+- NotFound
+- Invalid
+- Invalid,more-specific
+- Valid
+
+For delegated we expect globally reachable resources to be 'assigned'. Resources that are 'reserved' and 'available' should be considered as bogons.
+
+### Command line
+The command line interface should be used only for a few queries, each query will reload all databases.
+```zsh
+>> python3 src/rov.py 8.8.8.0/24 15169 
+{
+    "irr": {
+        "status": "Valid",
+        "prefix": "8.8.8.0/24",
+        "asn": [
+            15169
+        ],
+        "desc": "Google",
+        "source": "RADB"
+    },
+    "rpki": {
+        "status": "Valid",
+        "prefix": "8.8.8.0/24",
+        "asn": [
+            15169
+        ],
+        "maxLength": 24,
+        "ta": "arin"
+    },
+    "delegated": {
+        "prefix": {
+            "status": "assigned",
+            "prefix": "8.0.0.0/9",
+            "date": "19921201",
+            "registry": "arin",
+            "country": "US"
+        },
+        "asn": {
+            "status": "assigned",
+            "registry": "arin"
+        }
+    }
+}
+
+>> python3 src/rov.py 10.1.0.0/16 15169
+{
+    "irr": {
+        "status": "NotFound"
+    },
+    "rpki": {
+        "status": "NotFound"
+    },
+    "delegated": {
+        "prefix": {
+            "status": "reserved",
+            "prefix": "10.0.0.0/8",
+            "date": "19940301",
+            "registry": "iana",
+            "country": "ZZ"
+        },
+        "asn": {
+            "status": "assigned",
+            "registry": "arin"
+        }
+    }
+}
+```
+### In python 
+For large batches use the python library as follows:
+
 ```python
-from rov import ROV
+import json
+from ihr.rov import ROV
 
 # list of routes we want to validate
 routes = [
@@ -37,23 +99,178 @@ routes = [
 
 rov = ROV()
 
-# download databases if needed, set update to True if you need fresh databases
-rov.download_databases(update=False)
+# optional: download latest databases if needed
+rov.download_databases()
 
-# reade databases, this may take a bit of time
+# read databases, this may take a minute or so
 rov.load_databases()
 
 # this should be super fast
 for prefix, asn in routes:
     state = rov.check(prefix, asn)
-    print(prefix,  state)
+    print(prefix)
+    print(json.dumps(state, indent=4))
 
-# prints this:
-# 1.1.1.0/24 {'irr': 'NotFound', 'rpki': 'Valid'}
-# 2.2.2.0/24 {'irr': 'NotFound', 'rpki': 'Invalid,more-specific'}
-# 3.3.3.0/24 {'irr': 'NotFound', 'rpki': 'Valid'}
-# 4.4.4.0/24 {'irr': 'Valid', 'rpki': 'NotFound'}
-# 5.5.5.0/24 {'irr': 'NotFound', 'rpki': 'Invalid,more-specific'}
-
-    
+## 1.1.1.0/24
+# {
+#    "irr": {
+#        "status": "Valid",
+#        "prefix": "1.1.1.0/24",
+#        "asn": [
+#            13335
+#        ],
+#        "desc": "APNIC Research and Development\n6 Cordelia St",
+#        "source": "APNIC"
+#    },
+#    "rpki": {
+#        "status": "Valid",
+#        "prefix": "1.1.1.0/24",
+#        "asn": [
+#            13335
+#        ],
+#        "maxLength": 24,
+#        "ta": "apnic"
+#    },
+#    "delegated": {
+#        "prefix": {
+#            "status": "assigned",
+#            "prefix": "1.1.1.0/24",
+#            "date": "20110811",
+#            "registry": "apnic",
+#            "country": "AU"
+#        },
+#        "asn": {
+#            "status": "assigned",
+#            "registry": "arin"
+#        }
+#    }
+#}
+# 2.2.2.0/24
+# {
+#    "irr": {
+#        "status": "Invalid,more-specific",
+#        "prefix": "2.2.0.0/16",
+#        "asn": [
+#            3215
+#        ],
+#        "desc": "France Telecom Orange",
+#        "source": "RIPE"
+#    },
+#    "rpki": {
+#        "status": "Invalid,more-specific",
+#        "prefix": "2.0.0.0/12",
+#        "asn": [
+#            3215
+#        ],
+#        "maxLength": 17,
+#        "ta": "ripe"
+#    },
+#    "delegated": {
+#        "prefix": {
+#            "status": "assigned",
+#            "prefix": "2.0.0.0/12",
+#            "date": "20100712",
+#            "registry": "ripencc",
+#            "country": "FR"
+#        },
+#        "asn": {
+#            "status": "assigned",
+#            "registry": "ripencc"
+#        }
+#    }
+#}
+# 3.3.3.0/24
+# {
+#    "irr": {
+#        "status": "NotFound"
+#    },
+#    "rpki": {
+#        "status": "Valid",
+#        "prefix": "3.0.0.0/10",
+#        "asn": [
+#            8987,
+#            14618,
+#            16509
+#        ],
+#        "maxLength": 24,
+#        "ta": "arin"
+#    },
+#    "delegated": {
+#        "prefix": {
+#            "status": "assigned",
+#            "prefix": "3.0.0.0/9",
+#            "date": "20171220",
+#            "registry": "arin",
+#            "country": "US"
+#        },
+#        "asn": {
+#            "status": "assigned",
+#            "registry": "arin"
+#        }
+#    }
+#}
+# 4.4.4.0/24
+# {
+#    "irr": {
+#        "status": "Valid",
+#        "prefix": "4.4.4.0/24",
+#        "asn": [
+#            198949
+#        ],
+#        "desc": "dima_training",
+#        "source": "RADB"
+#    },
+#    "rpki": {
+#        "status": "NotFound"
+#    },
+#    "delegated": {
+#        "prefix": {
+#            "status": "assigned",
+#            "prefix": "4.0.0.0/9",
+#            "date": "19921201",
+#            "registry": "arin",
+#            "country": "US"
+#        },
+#        "asn": {
+#            "status": "assigned",
+#            "registry": "ripencc"
+#        }
+#    }
+#}
+# 5.5.5.0/24
+# {
+#    "irr": {
+#        "status": "Invalid,more-specific",
+#        "prefix": "5.4.0.0/14",
+#        "asn": [
+#            6805
+#        ],
+#        "desc": "Telefonica Germany GmbH & Co. OHG",
+#        "source": "RIPE"
+#    },
+#    "rpki": {
+#        "status": "Invalid,more-specific",
+#        "prefix": "5.4.0.0/14",
+#        "asn": [
+#            6805
+#        ],
+#        "maxLength": 14,
+#        "ta": "ripe"
+#    },
+#    "delegated": {
+#        "prefix": {
+#            "status": "assigned",
+#            "prefix": "5.4.0.0/14",
+#            "date": "20120425",
+#            "registry": "ripencc",
+#            "country": "DE"
+#        },
+#        "asn": {
+#            "status": "assigned",
+#            "registry": "ripencc"
+#        }
+#    }
+#}
 ```
+
+

@@ -1,17 +1,20 @@
+#!/usr/bin/env python3
+
 import appdirs
 import argparse
 from collections import defaultdict
 import glob
 import gzip
+import json
 import os
 import math
 import portion
 import radix
 import shutil
 import sys
+
 import urllib.request as request
 from contextlib import closing
-import json
 
 CACHE_DIR = appdirs.user_cache_dir('rov', 'IHR')
 
@@ -84,7 +87,11 @@ class ROV(object):
                 }
 
     def load_databases(self):
-        """Load databases into memory"""
+        """Load databases into memory. Also download databases if it is not 
+        available locally."""
+
+        # Make sure we have databases to load
+        self.download_databases(overwrite=False)
 
         self.load_delegated()
         self.load_irr()
@@ -227,6 +234,7 @@ class ROV(object):
                         continue
 
                     if line == '':
+                        # Store the last record
                         if 'route' in rec:
                             if 'origin' not in rec:
                                 # we may be in a 'descr' empty line
@@ -242,6 +250,7 @@ class ROV(object):
                                 asn = int(rec['origin'][2:].partition('#')[0])
                                 rnode.data['asn'].append(asn)
                                 rnode.data['desc'] = rec.get('descr', '') 
+                                rnode.data['source'] = rec.get('source', '') 
                             except ValueError:
                                 sys.stderr.write(f'Error in {fname}, invalid ASN!\n{rec}\n')
 
@@ -289,21 +298,32 @@ class ROV(object):
 
         for name, rtree in self.roas.items():
             # Default by NotFound or Invalid
+            status = {'status': 'NotFound'}
             rnodes = rtree.search_covering(prefix)
             if len(rnodes) > 0:
-                states[name] = 'Invalid'
-            else:
-                states[name] = 'NotFound'
+                # report invalid with the most specific prefix
+                rnode = rnodes[0]
+                status = {'status': 'Invalid', 'prefix': rnode.prefix}
+                for k,v in rnode.data.items():
+                    status[k] = v
 
             for rnode in rnodes:
                 if origin_asn in rnode.data['asn']: # Matching ASN
-                    states[name] = 'Invalid,more-specific'
-                    
+                    status = {'status': 'Invalid,more-specific', 'prefix': rnode.prefix}
+                    for k,v in rnode.data.items():
+                        status[k] = v
+
                     # check prefix length
                     if( ('maxLength' in rnode.data and rnode.data['maxLength'] >= prefixlen) 
                         or (prefix_in == rnode.prefix)):
-                            states[name] = 'Valid'
+
+                            status = {'status': 'Valid', 'prefix': rnode.prefix}
+                            for k,v in rnode.data.items():
+                                status[k] = v
+                    
                             break
+
+            states[name] = status
                         
         # Check status in delegated stats
         rnode = self.delegated['prefix'].search_best(prefix)
@@ -321,8 +341,11 @@ class ROV(object):
         return states
 
 
-    def download_databases(self, overwrite=False):
-        """Download databases in the data folder"""
+    def download_databases(self, overwrite=True):
+        """Download databases in the cache folder. 
+
+        Set overwrite=False to download only missing databases."""
+
         # TODO implement automatic update based on 
 
         for folder, urls in self.urls.items():
@@ -342,7 +365,8 @@ class ROV(object):
                         shutil.copyfileobj(r, f)
 
 
-if __name__ == "__main__":
+# Command line application
+def main():
     # Parse command line arguments
     parser = argparse.ArgumentParser(
         description='Check the validity of the given prefix and origin ASN in \
@@ -378,8 +402,12 @@ if __name__ == "__main__":
     rov.load_databases()
     
     validation_results = rov.check(args.prefix, args.ASN)
-    print(validation_results)
+    print(json.dumps(validation_results, indent=4))
 
     if args.interactive:
         import IPython
         IPython.embed()
+
+
+if __name__ == "__main__":
+    main()
