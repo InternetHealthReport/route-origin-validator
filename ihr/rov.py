@@ -296,6 +296,12 @@ class ROV(object):
         prefixlen = int(prefix_in.partition('/')[2])
         states = {}
 
+        # include the query in the results
+        states['query'] = {
+                'prefix': prefix,
+                'asn': origin_asn
+                }
+
         for name, rtree in self.roas.items():
             # Default by NotFound or Invalid
             status = {'status': 'NotFound'}
