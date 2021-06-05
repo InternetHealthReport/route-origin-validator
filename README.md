@@ -24,6 +24,10 @@ The command line interface should be used only for a few queries, each query wil
 ```zsh
 >> rov 8.8.8.0/24 15169 
 {
+    "query": {
+        "prefix": "8.8.8.0/24",
+        "asn": 15169
+    },
     "irr": {
         "status": "Valid",
         "prefix": "8.8.8.0/24",
@@ -59,6 +63,10 @@ The command line interface should be used only for a few queries, each query wil
 
 >> rov 10.1.0.0/16 15169
 {
+    "query": {
+         "prefix": "10.1.0.0/16",
+         "asn": "15169"
+    },
     "irr": {
         "status": "NotFound"
     },
@@ -111,8 +119,12 @@ for prefix, asn in routes:
     print(prefix)
     print(json.dumps(state, indent=4))
 
-## 1.1.1.0/24
-# {
+#1.1.1.0/24
+#{
+#    "query": {
+#        "prefix": "1.1.1.0/24",
+#        "asn": 13335
+#    },
 #    "irr": {
 #        "status": "Valid",
 #        "prefix": "1.1.1.0/24",
@@ -145,8 +157,12 @@ for prefix, asn in routes:
 #        }
 #    }
 #}
-# 2.2.2.0/24
-# {
+#2.2.2.0/24
+#{
+#    "query": {
+#        "prefix": "2.2.2.0/24",
+#        "asn": 3215
+#    },
 #    "irr": {
 #        "status": "Invalid,more-specific",
 #        "prefix": "2.2.0.0/16",
@@ -179,8 +195,12 @@ for prefix, asn in routes:
 #        }
 #    }
 #}
-# 3.3.3.0/24
-# {
+#3.3.3.0/24
+#{
+#    "query": {
+#        "prefix": "3.3.3.0/24",
+#        "asn": 16509
+#    },
 #    "irr": {
 #        "status": "NotFound"
 #    },
@@ -209,8 +229,12 @@ for prefix, asn in routes:
 #        }
 #    }
 #}
-# 4.4.4.0/24
-# {
+#4.4.4.0/24
+#{
+#    "query": {
+#        "prefix": "4.4.4.0/24",
+#        "asn": 198949
+#    },
 #    "irr": {
 #        "status": "Valid",
 #        "prefix": "4.4.4.0/24",
@@ -237,8 +261,12 @@ for prefix, asn in routes:
 #        }
 #    }
 #}
-# 5.5.5.0/24
-# {
+#5.5.5.0/24
+#{
+#    "query": {
+#        "prefix": "5.5.5.0/24",
+#        "asn": 6805
+#    },
 #    "irr": {
 #        "status": "Invalid,more-specific",
 #        "prefix": "5.4.0.0/14",
@@ -273,4 +301,6 @@ for prefix, asn in routes:
 #}
 ```
 
+## Acknowledgements
 
+This project is supported by MANRS/ISOC, thanks!
