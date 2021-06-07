@@ -249,7 +249,7 @@ class ROV(object):
                             try:
                                 asn = int(rec['origin'][2:].partition('#')[0])
                                 rnode.data['asn'].append(asn)
-                                rnode.data['desc'] = rec.get('descr', '') 
+                                rnode.data['descr'] = rec.get('descr', '') 
                                 rnode.data['source'] = rec.get('source', '') 
                             except ValueError:
                                 sys.stderr.write(f'Error in {fname}, invalid ASN!\n{rec}\n')
