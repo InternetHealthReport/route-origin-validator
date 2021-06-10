@@ -191,7 +191,12 @@ class ROV(object):
                             start_interval = None
                             previous_rec = {f:'' for f in fields_name}
 
-                        prefix_len = int(32-math.log2(rec['value']))
+                        # compute prefix length
+                        if rec['type'] == 'ipv4':
+                            prefix_len = int(32-math.log2(rec['value']))
+                        elif rec['type'] == 'ipv6':
+                            prefix_len = int(rec['value'])
+
                         prefix = f"{rec['start']}/{prefix_len}"
                         rnode = self.delegated['prefix'].search_exact(prefix)
                         if rnode is None:
