@@ -34,7 +34,7 @@ The command line interface should be used only for a few queries, each query wil
         "asn": [
             15169
         ],
-        "desc": "Google",
+        "descr": "Google",
         "source": "RADB"
     },
     "rpki": {
@@ -93,7 +93,7 @@ For large batches use the python library as follows:
 
 ```python
 import json
-from ihr.rov import ROV
+from rov import ROV
 
 # list of routes we want to validate
 routes = [
@@ -131,7 +131,7 @@ for prefix, asn in routes:
 #        "asn": [
 #            13335
 #        ],
-#        "desc": "APNIC Research and Development\n6 Cordelia St",
+#        "descr": "APNIC Research and Development\n6 Cordelia St",
 #        "source": "APNIC"
 #    },
 #    "rpki": {
@@ -169,7 +169,7 @@ for prefix, asn in routes:
 #        "asn": [
 #            3215
 #        ],
-#        "desc": "France Telecom Orange",
+#        "descr": "France Telecom Orange",
 #        "source": "RIPE"
 #    },
 #    "rpki": {
@@ -241,7 +241,7 @@ for prefix, asn in routes:
 #        "asn": [
 #            198949
 #        ],
-#        "desc": "dima_training",
+#        "descr": "dima_training",
 #        "source": "RADB"
 #    },
 #    "rpki": {
@@ -273,7 +273,7 @@ for prefix, asn in routes:
 #        "asn": [
 #            6805
 #        ],
-#        "desc": "Telefonica Germany GmbH & Co. OHG",
+#        "descr": "Telefonica Germany GmbH & Co. OHG",
 #        "source": "RIPE"
 #    },
 #    "rpki": {
