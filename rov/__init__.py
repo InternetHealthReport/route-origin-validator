@@ -176,7 +176,7 @@ class ROV(object):
 
 
                     # prefix records
-                    elif rec['type'] == 'ipv4' or type == 'ipv6':
+                    elif rec['type'] == 'ipv4' or rec['type'] == 'ipv6':
 
                         if previous_rec['type'] == 'asn':
                             # stored the last ASN interval
