@@ -31,18 +31,12 @@ The command line interface should be used only for a few queries, each query wil
     "irr": {
         "status": "Valid",
         "prefix": "8.8.8.0/24",
-        "asn": [
-            15169
-        ],
         "descr": "Google",
         "source": "RADB"
     },
     "rpki": {
         "status": "Valid",
         "prefix": "8.8.8.0/24",
-        "asn": [
-            15169
-        ],
         "maxLength": 24,
         "ta": "arin"
     },
@@ -128,18 +122,12 @@ for prefix, asn in routes:
 #    "irr": {
 #        "status": "Valid",
 #        "prefix": "1.1.1.0/24",
-#        "asn": [
-#            13335
-#        ],
 #        "descr": "APNIC Research and Development\n6 Cordelia St",
 #        "source": "APNIC"
 #    },
 #    "rpki": {
 #        "status": "Valid",
 #        "prefix": "1.1.1.0/24",
-#        "asn": [
-#            13335
-#        ],
 #        "maxLength": 24,
 #        "ta": "apnic"
 #    },
@@ -166,18 +154,12 @@ for prefix, asn in routes:
 #    "irr": {
 #        "status": "Invalid,more-specific",
 #        "prefix": "2.2.0.0/16",
-#        "asn": [
-#            3215
-#        ],
 #        "descr": "France Telecom Orange",
 #        "source": "RIPE"
 #    },
 #    "rpki": {
 #        "status": "Invalid,more-specific",
 #        "prefix": "2.0.0.0/12",
-#        "asn": [
-#            3215
-#        ],
 #        "maxLength": 17,
 #        "ta": "ripe"
 #    },
@@ -207,11 +189,6 @@ for prefix, asn in routes:
 #    "rpki": {
 #        "status": "Valid",
 #        "prefix": "3.0.0.0/10",
-#        "asn": [
-#            8987,
-#            14618,
-#            16509
-#        ],
 #        "maxLength": 24,
 #        "ta": "arin"
 #    },
@@ -238,9 +215,6 @@ for prefix, asn in routes:
 #    "irr": {
 #        "status": "Valid",
 #        "prefix": "4.4.4.0/24",
-#        "asn": [
-#            198949
-#        ],
 #        "descr": "dima_training",
 #        "source": "RADB"
 #    },
@@ -270,18 +244,12 @@ for prefix, asn in routes:
 #    "irr": {
 #        "status": "Invalid,more-specific",
 #        "prefix": "5.4.0.0/14",
-#        "asn": [
-#            6805
-#        ],
 #        "descr": "Telefonica Germany GmbH & Co. OHG",
 #        "source": "RIPE"
 #    },
 #    "rpki": {
 #        "status": "Invalid,more-specific",
 #        "prefix": "5.4.0.0/14",
-#        "asn": [
-#            6805
-#        ],
 #        "maxLength": 14,
 #        "ta": "ripe"
 #    },

@@ -96,24 +96,6 @@ class ROV(object):
         self.load_irr()
         self.load_rpki()
 
-    def load_rpki(self):
-        """Parse the RPKI data and load it in a radix tree"""
-
-        for fname in glob.glob(RPKI_DIR+RPKI_FNAME):
-            sys.stderr.write(f'Loading: {fname}\n')
-            with open(fname, 'r') as fd:
-                data = json.load(fd)
-
-                for rec in data['roas']:
-                    rnode = self.roas['rpki'].search_exact(rec['prefix'])
-                    if rnode is None:
-                        rnode = self.roas['rpki'].add(rec['prefix'])
-                        rnode.data['asn'] = []
-
-                    rnode.data['asn'].append(int(rec['asn'][2:]))
-                    rnode.data['maxLength'] = rec['maxLength']
-                    rnode.data['ta'] = rec['ta']
-
     def load_delegated(self):
         """Parse the delegated data, load prefix data in a radix tree and ASN
         data in a IntervalDict"""
@@ -220,6 +202,28 @@ class ROV(object):
                     }
 
 
+    def load_rpki(self):
+        """Parse the RPKI data and load it in a radix tree"""
+
+        for fname in glob.glob(RPKI_DIR+RPKI_FNAME):
+            sys.stderr.write(f'Loading: {fname}\n')
+            with open(fname, 'r') as fd:
+                data = json.load(fd)
+
+                for rec in data['roas']:
+                    asn = int(rec['asn'][2:])
+                    rnode = self.roas['rpki'].search_exact(rec['prefix'])
+                    if rnode is None:
+                        rnode = self.roas['rpki'].add(rec['prefix'])
+
+                    if asn not in rnode.data:
+                        rnode.data[asn] = []
+
+                    rnode.data[asn].append( {
+                            'maxLength': rec['maxLength'],
+                            'ta': rec['ta']
+                        })
+
     def load_irr(self):
         """Parse the IRR data and load it in a radix tree"""
 
@@ -246,17 +250,22 @@ class ROV(object):
                                 continue
 
                             rnode = self.roas['irr'].search_exact(rec['route'])
-                            if rnode is None:
-                                rnode = self.roas['irr'].add(rec['route'])
-                                rnode.data['asn'] = []
-
                             try:
                                 asn = int(rec['origin'][2:].partition('#')[0])
-                                rnode.data['asn'].append(asn)
-                                rnode.data['descr'] = rec.get('descr', '') 
-                                rnode.data['source'] = rec.get('source', '') 
                             except ValueError:
                                 sys.stderr.write(f'Error in {fname}, invalid ASN!\n{rec}\n')
+                                continue
+
+                            if rnode is None:
+                                rnode = self.roas['irr'].add(rec['route'])
+
+                            if asn not in rnode.data:
+                                rnode.data[asn] = []
+
+                            rnode.data[asn].append({
+                                'descr':  rec.get('descr', '') ,
+                                'source': rec.get('source', '') 
+                                })
 
                         rec = {}
                         field = ''
@@ -295,7 +304,7 @@ class ROV(object):
     def check(self, prefix: str, origin_asn: int):
         """Compute the state of the given prefix, origin ASN pair"""
 
-        # Check routing status
+        origin_asn = int(origin_asn)
         prefix_in = prefix.strip()
         prefixlen = int(prefix_in.partition('/')[2])
         states = {}
@@ -306,32 +315,40 @@ class ROV(object):
                 'asn': origin_asn
                 }
 
+        # Check routing status
         for name, rtree in self.roas.items():
-            # Default by NotFound or Invalid
+            # Default to NotFound 
+            selected_roa = None
             status = {'status': 'NotFound'}
+
             rnodes = rtree.search_covering(prefix)
             if len(rnodes) > 0:
-                # report invalid with the most specific prefix
+                # report invalid with the first roa of the most specific prefix
                 rnode = rnodes[0]
                 status = {'status': 'Invalid', 'prefix': rnode.prefix}
-                for k,v in rnode.data.items():
-                    status[k] = v
+                key = next(iter(rnode.data.keys()))
+                selected_roa = rnode.data[key]
 
             for rnode in rnodes:
-                if origin_asn in rnode.data['asn']: # Matching ASN
-                    status = {'status': 'Invalid,more-specific', 'prefix': rnode.prefix}
-                    for k,v in rnode.data.items():
-                        status[k] = v
+                if origin_asn in rnode.data: # Matching ASN
 
-                    # check prefix length
-                    if( ('maxLength' in rnode.data and rnode.data['maxLength'] >= prefixlen) 
-                        or (prefix_in == rnode.prefix)):
+                    for roa in rnode.data[origin_asn]:
+                        status = {'status': 'Invalid,more-specific', 'prefix': rnode.prefix}
+                        selected_roa = roa
 
-                            status = {'status': 'Valid', 'prefix': rnode.prefix}
-                            for k,v in rnode.data.items():
-                                status[k] = v
-                    
-                            break
+                        # check prefix length
+                        if( ('maxLength' in roa and roa['maxLength'] >= prefixlen) 
+                            or (prefix_in == rnode.prefix)):
+
+                                status = {'status': 'Valid', 'prefix': rnode.prefix}
+                                selected_roa = roa
+
+                                break
+
+            # copy roa attributes in the status report
+            if selected_roa is not None:
+                for k,v in selected_roa.items():
+                    status[k] = v
 
             states[name] = status
                         
