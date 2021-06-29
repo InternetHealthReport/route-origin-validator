@@ -327,7 +327,7 @@ class ROV(object):
                 rnode = rnodes[0]
                 status = {'status': 'Invalid', 'prefix': rnode.prefix}
                 key = next(iter(rnode.data.keys()))
-                selected_roa = rnode.data[key]
+                selected_roa = rnode.data[key][0]
 
             for rnode in rnodes:
                 if origin_asn in rnode.data: # Matching ASN
