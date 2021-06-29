@@ -345,6 +345,9 @@ class ROV(object):
 
                                 break
 
+                    if status['status'] == 'Valid':
+                        break
+
             # copy roa attributes in the status report
             if selected_roa is not None:
                 for k,v in selected_roa.items():
