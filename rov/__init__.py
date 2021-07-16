@@ -211,7 +211,12 @@ class ROV(object):
                 data = json.load(fd)
 
                 for rec in data['roas']:
-                    asn = int(rec['asn'][2:])
+                    if( isinstance(rec['asn'], str) 
+                            and rec['asn'].startswith('AS') ):
+                        asn = int(rec['asn'][2:])
+                    else:
+                        asn = int(rec['asn'])
+
                     rnode = self.roas['rpki'].search_exact(rec['prefix'])
                     if rnode is None:
                         rnode = self.roas['rpki'].add(rec['prefix'])
