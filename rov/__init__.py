@@ -95,6 +95,10 @@ class ROV(object):
         self.urls[rpki_dir] = rpki_urls
         self.urls[delegated_dir] = delegated_urls
 
+        self.irr_dir = irr_dir
+        self.rpki_dir = rpki_dir
+        self.delegated_dir = delegated_dir
+
         self.roas = {
                 'irr': radix.Radix(), 
                 'rpki': radix.Radix()
@@ -120,7 +124,7 @@ class ROV(object):
         data in a IntervalDict"""
 
         intervals = defaultdict(list)
-        for fname in glob.glob(DELEGATED_DIR+DELEGATED_FNAME):
+        for fname in glob.glob(self.delegated_dir+DELEGATED_FNAME):
             sys.stderr.write(f'Loading: {fname}\n')
             # Read delegated-stats file. see documentation:
             # https://www.nro.net/wp-content/uploads/nro-extended-stats-readme5.txt
@@ -224,7 +228,7 @@ class ROV(object):
     def load_rpki(self):
         """Parse the RPKI data and load it in a radix tree"""
 
-        for fname in glob.glob(RPKI_DIR+RPKI_FNAME):
+        for fname in glob.glob(self.rpki_dir+RPKI_FNAME):
             sys.stderr.write(f'Loading: {fname}\n')
             with open(fname, 'r') as fd:
                 if fname.endswith('.json'):
@@ -240,10 +244,11 @@ class ROV(object):
                     for row in rows:
                         # Assume the same format as the one in RIPE archive
                         # https://ftp.ripe.net/ripe/rpki/
+                        maxLength = int(row[3]) if row[3] else int(row[2].rpartition('/')[2])
                         data['roas'].append( {
                             'asn': row[1],
                             'prefix': row[2],
-                            'maxLength': int(row[3]),
+                            'maxLength': maxLength,
                             'startTime': row[4],
                             'endTime': row[5],
                             'ta': ta
@@ -282,7 +287,7 @@ class ROV(object):
     def load_irr(self):
         """Parse the IRR data and load it in a radix tree"""
 
-        for fname in glob.glob(IRR_DIR+IRR_FNAME):
+        for fname in glob.glob(self.irr_dir+IRR_FNAME):
             sys.stderr.write(f'Loading: {fname}\n')
             with gzip.open(fname, 'rt', 
                     newline='\n', encoding='ISO-8859-1', errors='ignore') as fd:
