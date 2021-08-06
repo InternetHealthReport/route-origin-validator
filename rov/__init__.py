@@ -11,17 +11,18 @@ import portion
 import radix
 import shutil
 import sys
+import csv
 
 import urllib.request as request
 from contextlib import closing
 
 CACHE_DIR = appdirs.user_cache_dir('rov', 'IHR')
 
-IRR_DIR = CACHE_DIR+'/db/irr/'
+DEFAULT_IRR_DIR = CACHE_DIR+'/db/irr/'
 IRR_FNAME = '*.gz'
-RPKI_DIR = CACHE_DIR+'/db/rpki/'
-RPKI_FNAME = '*.json'
-DELEGATED_DIR = CACHE_DIR+'/db/delegated/'
+DEFAULT_RPKI_DIR = CACHE_DIR+'/db/rpki/'
+RPKI_FNAME = '*.*'
+DEFAULT_DELEGATED_DIR = CACHE_DIR+'/db/delegated/'
 DELEGATED_FNAME = '*-stats'
 
 DEFAULT_IRR_URLS = [
@@ -61,20 +62,38 @@ DEFAULT_IRR_URLS = [
 DEFAULT_RPKI_URLS = [ 
         'https://rpki.gin.ntt.net/api/export.json'
         ]
+RPKI_ARCHIVE_URLS = [ 
+        'https://ftp.ripe.net/ripe/rpki/afrinic.tal/{year:04d}/{month:02d}/{day:02d}/roas.csv',
+        'https://ftp.ripe.net/ripe/rpki/apnic.tal/{year:04d}/{month:02d}/{day:02d}/roas.csv',
+        'https://ftp.ripe.net/ripe/rpki/arin.tal/{year:04d}/{month:02d}/{day:02d}/roas.csv',
+        'https://ftp.ripe.net/ripe/rpki/lacnic.tal/{year:04d}/{month:02d}/{day:02d}/roas.csv',
+        'https://ftp.ripe.net/ripe/rpki/ripencc.tal/{year:04d}/{month:02d}/{day:02d}/roas.csv',
+        ]
 DEFAULT_DELEGATED_URLS = [ 
         'https://www.nro.net/wp-content/uploads/delegated-stats/nro-extended-stats'
         ]
 
+def guess_ta_name(url):
+    rirs = ['afrinic', 'arin', 'lacnic', 'ripencc', 'apnic']
+
+    for rir in rirs:
+        if rir+'.tal' in url:
+            return rir
+
+    return 'unknown'
+
+
 class ROV(object):
 
-    def __init__(self, irr_urls=DEFAULT_IRR_URLS, rpki_urls=DEFAULT_RPKI_URLS, 
-            delegated_urls=DEFAULT_DELEGATED_URLS):
+    def __init__( self, irr_urls=DEFAULT_IRR_URLS, rpki_urls=DEFAULT_RPKI_URLS, 
+            delegated_urls=DEFAULT_DELEGATED_URLS, irr_dir=DEFAULT_IRR_DIR, 
+            rpki_dir=DEFAULT_RPKI_DIR, delegated_dir=DEFAULT_DELEGATED_DIR ):
         """Initialize ROV object with databases URLs"""
 
         self.urls = {}
-        self.urls[IRR_DIR] = irr_urls
-        self.urls[RPKI_DIR] = rpki_urls
-        self.urls[DELEGATED_DIR] = delegated_urls
+        self.urls[irr_dir] = irr_urls
+        self.urls[rpki_dir] = rpki_urls
+        self.urls[delegated_dir] = delegated_urls
 
         self.roas = {
                 'irr': radix.Radix(), 
@@ -208,7 +227,32 @@ class ROV(object):
         for fname in glob.glob(RPKI_DIR+RPKI_FNAME):
             sys.stderr.write(f'Loading: {fname}\n')
             with open(fname, 'r') as fd:
-                data = json.load(fd)
+                if fname.endswith('.json'):
+                    data = json.load(fd)
+                elif fname.endswith('.csv'):
+                    ta = guess_ta_name(fname)
+                    data = {'roas': [] }
+                    rows = csv.reader(fd, delimiter=',')
+
+                    # skip the header
+                    next(rows)
+
+                    for row in rows:
+                        # Assume the same format as the one in RIPE archive
+                        # https://ftp.ripe.net/ripe/rpki/
+                        data['roas'].append( {
+                            'asn': row[1],
+                            'prefix': row[2],
+                            'maxLength': int(row[3]),
+                            'startTime': row[4],
+                            'endTime': row[5],
+                            'ta': ta
+                            } )
+
+                else:
+                    sys.stderr.write('Error: Unknown file format for RPKI data!')
+                    return 
+
 
                 for rec in data['roas']:
                     if( isinstance(rec['asn'], str) 
@@ -224,10 +268,16 @@ class ROV(object):
                     if asn not in rnode.data:
                         rnode.data[asn] = []
 
-                    rnode.data[asn].append( {
+                    roa_details = {
                             'maxLength': rec['maxLength'],
                             'ta': rec['ta']
-                        })
+                        }
+
+                    if 'startTime' in rec:
+                        roa_details['startTime'] = rec['startTime']
+                        roa_details['endTime'] = rec['endTime']
+
+                    rnode.data[asn].append( roa_details )
 
     def load_irr(self):
         """Parse the IRR data and load it in a radix tree"""
@@ -379,11 +429,16 @@ class ROV(object):
     def download_databases(self, overwrite=True):
         """Download databases in the cache folder. 
 
+        Overwrite=True clears the cache before downloading new files.
         Set overwrite=False to download only missing databases."""
 
         # TODO implement automatic update based on 
 
         for folder, urls in self.urls.items():
+
+            # Clear the whole cache if overwrite
+            if overwrite and os.path.exists(folder):
+                shutil.rmtree(folder)
 
             # Create the folder if needed
             os.makedirs(folder, exist_ok=True)
@@ -391,6 +446,12 @@ class ROV(object):
             for url in urls:
                 # Check if the file already exists
                 fname = url.rpartition('/')[2]
+
+                # all files from RIPE's RPKI archive have the same name
+                # 'roas.csv', change it with the tal name
+                if fname == 'roas.csv':
+                    fname = guess_ta_name(url)+'.csv'
+
                 if os.path.exists(folder+fname) and not overwrite:
                     continue
 
