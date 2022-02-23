@@ -246,6 +246,7 @@ class ROV(object):
                         # https://ftp.ripe.net/ripe/rpki/
                         maxLength = int(row[3]) if row[3] else int(row[2].rpartition('/')[2])
                         data['roas'].append( {
+                            'uri': row[0],
                             'asn': row[1],
                             'prefix': row[2],
                             'maxLength': maxLength,
@@ -281,6 +282,9 @@ class ROV(object):
                     if 'startTime' in rec:
                         roa_details['startTime'] = rec['startTime']
                         roa_details['endTime'] = rec['endTime']
+
+                    if 'uri' in rec:
+                        roa_details['uri'] = rec['uri']
 
                     rnode.data[asn].append( roa_details )
 

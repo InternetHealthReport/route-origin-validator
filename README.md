@@ -82,6 +82,43 @@ The command line interface should be used only for a few queries, each query wil
     }
 }
 ```
+
+Past RPKI data can also be queried.
+Currently this only works for RPKI, so the results mix past and recent data. 
+In the following example, the rpki results are for 2018/10/01 but other results 
+correspond to the exectution date.
+```zsh
+>> rov 8.8.8.0/24 15169 --rpki_archive 2018/10/01
+{
+    "query": {
+        "prefix": "8.8.8.0/24",
+        "asn": 15169
+    },
+    "irr": {
+        "status": "Valid",
+        "prefix": "8.8.8.0/24",
+        "descr": "Google",
+        "source": "RADB"
+    },
+    "rpki": {
+        "status": "NotFound"
+    },
+    "delegated": {
+        "prefix": {
+            "status": "assigned",
+            "prefix": "8.0.0.0/9",
+            "date": "19921201",
+            "registry": "arin",
+            "country": "US"
+        },
+        "asn": {
+            "status": "assigned",
+            "registry": "arin"
+        }
+    }
+}
+```
+
 ### In python 
 For large batches use the python library as follows:
 
