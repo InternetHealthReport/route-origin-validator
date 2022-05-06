@@ -4,7 +4,7 @@ with open('README.md') as f:
     readme = f.read()
 
 setup(
-    version = '0.3.0',
+    version = '0.4.0',
     name = 'rov',
     author = 'Romain Fontugne',
     author_email = 'romain.fontugne@gmail.com',
