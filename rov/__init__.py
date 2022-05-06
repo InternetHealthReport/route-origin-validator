@@ -13,6 +13,7 @@ import shutil
 import sys
 import csv
 
+import urllib
 import urllib.request as request
 from contextlib import closing
 
@@ -441,7 +442,7 @@ class ROV(object):
         Overwrite=True clears the cache before downloading new files.
         Set overwrite=False to download only missing databases."""
 
-        # TODO implement automatic update based on 
+        # TODO implement automatic update based on dates
 
         for folder, urls in self.urls.items():
 
@@ -465,7 +466,10 @@ class ROV(object):
                     continue
 
                 sys.stderr.write(f'Downloading: {url}\n')
-                with closing(request.urlopen(url)) as r:
-                    with open(folder+fname, 'wb') as f:
-                        shutil.copyfileobj(r, f)
+                try:
+                    with closing(request.urlopen(url)) as r:
+                        with open(folder+fname, 'wb') as f:
+                            shutil.copyfileobj(r, f)
+                except urllib.error.URLError:
+                    sys.stderr.write(f'Error {url} is not available.\n')
 
