@@ -63,13 +63,39 @@ DEFAULT_IRR_URLS = [
 DEFAULT_RPKI_URLS = [ 
         'https://rpki.gin.ntt.net/api/export.json'
         ]
+import requests
+from io import BytesIO
+import lzma
+from datetime import datetime
+
 RPKI_ARCHIVE_URLS = [ 
-        'https://ftp.ripe.net/ripe/rpki/afrinic.tal/{year:04d}/{month:02d}/{day:02d}/roas.csv',
-        'https://ftp.ripe.net/ripe/rpki/apnic.tal/{year:04d}/{month:02d}/{day:02d}/roas.csv',
-        'https://ftp.ripe.net/ripe/rpki/arin.tal/{year:04d}/{month:02d}/{day:02d}/roas.csv',
-        'https://ftp.ripe.net/ripe/rpki/lacnic.tal/{year:04d}/{month:02d}/{day:02d}/roas.csv',
-        'https://ftp.ripe.net/ripe/rpki/ripencc.tal/{year:04d}/{month:02d}/{day:02d}/roas.csv',
-        ]
+    'https://ftp.ripe.net/ripe/rpki/afrinic.tal/{year:04d}/{month:02d}/{day:02d}/roas.xv',
+    'https://ftp.ripe.net/ripe/rpki/apnic.tal/{year:04d}/{month:02d}/{day:02d}/roas.xv',
+    'https://ftp.ripe.net/ripe/rpki/arin.tal/{year:04d}/{month:02d}/{day:02d}/roas.xv',
+    'https://ftp.ripe.net/ripe/rpki/lacnic.tal/{year:04d}/{month:02d}/{day:02d}/roas.xv',
+    'https://ftp.ripe.net/ripe/rpki/ripencc.tal/{year:04d}/{month:02d}/{day:02d}/roas.xv',
+]
+
+def fetch_and_decompress_data(url):
+    response = requests.get(url)
+    compressed_data = BytesIO(response.content)
+    decompressed_data = lzma.decompress(compressed_data.read())
+    return decompressed_data
+
+def process_data(data):
+    print(data)
+
+
+for url_template in RPKI_ARCHIVE_URLS:
+    # Replace placeholders with the current date
+    url = url_template.format(year=datetime.now().year, month=datetime.now().month, day=datetime.now().day)
+    
+    # Fetch and decompress data
+    data = fetch_and_decompress_data(url)
+    
+    # Process the data
+    process_data(data)
+
 DEFAULT_DELEGATED_URLS = [ 
         'https://www.nro.net/wp-content/uploads/delegated-stats/nro-extended-stats'
         ]
