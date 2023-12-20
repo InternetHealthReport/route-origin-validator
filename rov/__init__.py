@@ -16,6 +16,7 @@ import csv
 import urllib
 import urllib.request as request
 from contextlib import closing
+from datetime import datetime
 
 CACHE_DIR = appdirs.user_cache_dir('rov', 'IHR')
 
@@ -25,6 +26,9 @@ DEFAULT_RPKI_DIR = CACHE_DIR+'/db/rpki/'
 RPKI_FNAME = '*.*'
 DEFAULT_DELEGATED_DIR = CACHE_DIR+'/db/delegated/'
 DELEGATED_FNAME = '*-stats'
+# Get the current date
+current_date = datetime.now()
+formatted_date = current_date.strftime('%Y/%m/%d')
 
 DEFAULT_IRR_URLS = [
         # RADB
@@ -64,11 +68,11 @@ DEFAULT_RPKI_URLS = [
         'https://rpki.gin.ntt.net/api/export.json'
         ]
 RPKI_ARCHIVE_URLS = [ 
-        'https://ftp.ripe.net/ripe/rpki/afrinic.tal/{year:04d}/{month:02d}/{day:02d}/roas.csv',
-        'https://ftp.ripe.net/ripe/rpki/apnic.tal/{year:04d}/{month:02d}/{day:02d}/roas.csv',
-        'https://ftp.ripe.net/ripe/rpki/arin.tal/{year:04d}/{month:02d}/{day:02d}/roas.csv',
-        'https://ftp.ripe.net/ripe/rpki/lacnic.tal/{year:04d}/{month:02d}/{day:02d}/roas.csv',
-        'https://ftp.ripe.net/ripe/rpki/ripencc.tal/{year:04d}/{month:02d}/{day:02d}/roas.csv',
+        'https://ftp.ripe.net/ripe/rpki/afrinic.tal/{formatted_date}/roas.csv',
+        'https://ftp.ripe.net/ripe/rpki/apnic.tal/{formatted_date}/roas.csv',
+        'https://ftp.ripe.net/ripe/rpki/arin.tal/{formatted_date}/roas.csv',
+        'https://ftp.ripe.net/ripe/rpki/lacnic.tal/{formatted_date}/roas.csv',
+        'https://ftp.ripe.net/ripe/rpki/ripencc.tal/{formatted_date}/roas.csv',
         ]
 DEFAULT_DELEGATED_URLS = [ 
         'https://www.nro.net/wp-content/uploads/delegated-stats/nro-extended-stats'
