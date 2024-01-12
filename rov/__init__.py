@@ -66,11 +66,12 @@ DEFAULT_RPKI_URLS = [
         'https://rpki.gin.ntt.net/api/export.json'
         ]
 RPKI_ARCHIVE_URLS = [ 
-        'https://ftp.ripe.net/ripe/rpki/afrinic.tal/{year:04d}/{month:02d}/{day:02d}/roas.csv.xz',
-        'https://ftp.ripe.net/ripe/rpki/apnic.tal/{year:04d}/{month:02d}/{day:02d}/roas.csv.xz',
-        'https://ftp.ripe.net/ripe/rpki/arin.tal/{year:04d}/{month:02d}/{day:02d}/roas.csv.xz',
-        'https://ftp.ripe.net/ripe/rpki/lacnic.tal/{year:04d}/{month:02d}/{day:02d}/roas.csv.xz',
-        'https://ftp.ripe.net/ripe/rpki/ripencc.tal/{year:04d}/{month:02d}/{day:02d}/roas.csv.xz',
+        'https://ftp.ripe.net/rpki/afrinic.tal/{year:04d}/{month:02d}/{day:02d}/roas.csv.xz',
+        'https://ftp.ripe.net/rpki/apnic.tal/{year:04d}/{month:02d}/{day:02d}/roas.csv.xz',
+        'https://ftp.ripe.net/rpki/arin.tal/{year:04d}/{month:02d}/{day:02d}/roas.csv.xz',
+        'https://ftp.ripe.net/rpki/lacnic.tal/{year:04d}/{month:02d}/{day:02d}/roas.csv.xz',
+        'https://ftp.ripe.net/rpki/ripencc.tal/{year:04d}/{month:02d}/{day:02d}/roas.csv.xz',
+        
         ]
 DEFAULT_DELEGATED_URLS = [ 
         'https://www.nro.net/wp-content/uploads/delegated-stats/nro-extended-stats'
