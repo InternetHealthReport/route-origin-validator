@@ -18,6 +18,7 @@ setup(
         'appdirs',
         'py-radix',
         'portion',
+        'lzma'
     ],
     entry_points={'console_scripts':
             ['rov = rov.__main__:main']},
