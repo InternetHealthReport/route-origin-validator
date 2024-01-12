@@ -12,6 +12,8 @@ import radix
 import shutil
 import sys
 import csv
+import lzma
+from io import BytesIO
 
 import urllib
 import urllib.request as request
@@ -64,11 +66,11 @@ DEFAULT_RPKI_URLS = [
         'https://rpki.gin.ntt.net/api/export.json'
         ]
 RPKI_ARCHIVE_URLS = [ 
-        'https://ftp.ripe.net/ripe/rpki/afrinic.tal/{year:04d}/{month:02d}/{day:02d}/roas.csv',
-        'https://ftp.ripe.net/ripe/rpki/apnic.tal/{year:04d}/{month:02d}/{day:02d}/roas.csv',
-        'https://ftp.ripe.net/ripe/rpki/arin.tal/{year:04d}/{month:02d}/{day:02d}/roas.csv',
-        'https://ftp.ripe.net/ripe/rpki/lacnic.tal/{year:04d}/{month:02d}/{day:02d}/roas.csv',
-        'https://ftp.ripe.net/ripe/rpki/ripencc.tal/{year:04d}/{month:02d}/{day:02d}/roas.csv',
+        'https://ftp.ripe.net/ripe/rpki/afrinic.tal/{year:04d}/{month:02d}/{day:02d}/roas.csv.xz',
+        'https://ftp.ripe.net/ripe/rpki/apnic.tal/{year:04d}/{month:02d}/{day:02d}/roas.csv.xz',
+        'https://ftp.ripe.net/ripe/rpki/arin.tal/{year:04d}/{month:02d}/{day:02d}/roas.csv.xz',
+        'https://ftp.ripe.net/ripe/rpki/lacnic.tal/{year:04d}/{month:02d}/{day:02d}/roas.csv.xz',
+        'https://ftp.ripe.net/ripe/rpki/ripencc.tal/{year:04d}/{month:02d}/{day:02d}/roas.csv.xz',
         ]
 DEFAULT_DELEGATED_URLS = [ 
         'https://www.nro.net/wp-content/uploads/delegated-stats/nro-extended-stats'
@@ -459,17 +461,25 @@ class ROV(object):
 
                 # all files from RIPE's RPKI archive have the same name
                 # 'roas.csv', change it with the tal name
-                if fname == 'roas.csv':
-                    fname = guess_ta_name(url)+'.csv'
+                if fname == 'roas.csv.xz':
+                    fname = guess_ta_name(url)+".csv"
 
                 if os.path.exists(folder+fname) and not overwrite:
                     continue
 
                 sys.stderr.write(f'Downloading: {url}\n')
+        
                 try:
-                    with closing(request.urlopen(url)) as r:
-                        with open(folder+fname, 'wb') as f:
-                            shutil.copyfileobj(r, f)
+                    # to separete csv.xz file to decompress
+                    if "roas.csv.xz" in url:
+                        with closing(request.urlopen(url)) as response:
+                            with lzma.open(BytesIO(response.read())) as r:
+                                with open(folder+fname, 'wb') as f:
+                                    shutil.copyfileobj(r,f)
+                    else:
+                        with closing(request.urlopen(url)) as r:
+                            with open(folder+fname, 'wb') as f:
+                                shutil.copyfileobj(r, f)
                 except urllib.error.URLError:
                     sys.stderr.write(f'Error {url} is not available.\n')
-
+                    
