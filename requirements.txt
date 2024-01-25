@@ -1,5 +1,4 @@
 appdirs
 py-radix
 portion
-lzma
 
