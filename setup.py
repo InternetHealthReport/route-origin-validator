@@ -17,7 +17,8 @@ setup(
     install_requires=[
         'appdirs',
         'py-radix',
-        'portion'
+        'portion',
+        'pandas'
     ],
     entry_points={'console_scripts':
             ['rov = rov.__main__:main']},
