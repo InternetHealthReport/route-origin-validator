@@ -52,8 +52,8 @@ DEFAULT_IRR_URLS = [
         'ftp://ftp.radb.net/radb/dbase/rogers.db.gz',
         'ftp://ftp.radb.net/radb/dbase/tc.db.gz',
         # RIRs
-        'ftp://ftp.arin.net/pub/rr/arin-nonauth.db.gz',
-        'ftp://ftp.arin.net/pub/rr/arin.db.gz',
+        'https://ftp.arin.net/pub/rr/arin-nonauth.db.gz',
+        'https://ftp.arin.net/pub/rr/arin.db.gz',
         'ftp://ftp.afrinic.net/pub/dbase/afrinic.db.gz',
         'ftp://ftp.apnic.net/pub/apnic/whois/apnic.db.route.gz',
         'https://ftp.lacnic.net/lacnic/irr/lacnic.db.gz',
