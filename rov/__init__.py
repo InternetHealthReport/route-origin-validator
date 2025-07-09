@@ -13,6 +13,8 @@ import shutil
 import sys
 import csv
 import lzma
+from datetime import datetime
+import pandas as pd
 from io import BytesIO
 
 import urllib
@@ -67,15 +69,20 @@ DEFAULT_IRR_URLS = [
 DEFAULT_RPKI_URLS = [ 
         'https://rpki.gin.ntt.net/api/export.json'
         ]
-RPKI_ARCHIVE_URLS = [ 
+RPKI_ARCHIVE_URLS = [
         'https://ftp.ripe.net/rpki/afrinic.tal/{year:04d}/{month:02d}/{day:02d}/roas.csv.xz',
         'https://ftp.ripe.net/rpki/apnic.tal/{year:04d}/{month:02d}/{day:02d}/roas.csv.xz',
         'https://ftp.ripe.net/rpki/arin.tal/{year:04d}/{month:02d}/{day:02d}/roas.csv.xz',
         'https://ftp.ripe.net/rpki/lacnic.tal/{year:04d}/{month:02d}/{day:02d}/roas.csv.xz',
         'https://ftp.ripe.net/rpki/ripencc.tal/{year:04d}/{month:02d}/{day:02d}/roas.csv.xz',
-        
+        'https://ftp.ripe.net/rpki/afrinic.tal/{year:04d}/{month:02d}/{day:02d}/output.json.xz',
+        'https://ftp.ripe.net/rpki/apnic.tal/{year:04d}/{month:02d}/{day:02d}/output.json.xz',
+        'https://ftp.ripe.net/rpki/arin.tal/{year:04d}/{month:02d}/{day:02d}/output.json.xz',
+        'https://ftp.ripe.net/rpki/lacnic.tal/{year:04d}/{month:02d}/{day:02d}/output.json.xz',
+        'https://ftp.ripe.net/rpki/ripencc.tal/{year:04d}/{month:02d}/{day:02d}/output.json.xz',
         ]
-DEFAULT_DELEGATED_URLS = [ 
+
+DEFAULT_DELEGATED_URLS = [
         'https://www.nro.net/wp-content/uploads/delegated-stats/nro-extended-stats'
         ]
 
@@ -88,11 +95,28 @@ def guess_ta_name(url):
 
     return 'unknown'
 
+def download_csv_xz_and_convert_to_json(url, json_file_path,fname):
+
+    # Download and decompress the xz file
+    with request.urlopen(url) as response:
+        with lzma.LZMAFile(BytesIO(response.read())) as decompressed_data:
+            # Read CSV data into a pandas DataFrame
+            df = pd.read_csv(decompressed_data, header=None, names=["URI", "ASN", "IP Prefix", "Max Length", "Not Before", "Not After"],dtype='unicode')
+
+            # Convert DataFrame to a list of dictionaries with the specified keys
+            data_list = [{"asn": row['ASN'], "prefix": row["IP Prefix"], "maxLength": None if pd.isnull(row["Max Length"]) else row["Max Length"] , "ta": f"{fname.replace(".json", "")}"} for _, row in df.iterrows()]
+
+            # Create a dictionary with the specified keys
+            result_dict = {"roas": data_list[1:]}
+
+            # Save JSON to a file
+            with open(json_file_path, "w") as json_file:
+                json.dump(result_dict, json_file, indent=2)
 
 class ROV(object):
 
-    def __init__( self, irr_urls=DEFAULT_IRR_URLS, rpki_urls=DEFAULT_RPKI_URLS, 
-            delegated_urls=DEFAULT_DELEGATED_URLS, irr_dir=DEFAULT_IRR_DIR, 
+    def __init__( self, irr_urls=DEFAULT_IRR_URLS, rpki_urls=DEFAULT_RPKI_URLS,
+            delegated_urls=DEFAULT_DELEGATED_URLS, irr_dir=DEFAULT_IRR_DIR,
             rpki_dir=DEFAULT_RPKI_DIR, delegated_dir=DEFAULT_DELEGATED_DIR ):
         """Initialize ROV object with databases URLs"""
 
@@ -260,14 +284,13 @@ class ROV(object):
                             'endTime': row[5],
                             'ta': ta
                             } )
-
                 else:
                     sys.stderr.write('Error: Unknown file format for RPKI data!')
-                    return 
+                    return
 
 
                 for rec in data['roas']:
-                    if( isinstance(rec['asn'], str) 
+                    if( isinstance(rec['asn'], str)
                             and rec['asn'].startswith('AS') ):
                         asn = int(rec['asn'][2:])
                     else:
@@ -466,9 +489,30 @@ class ROV(object):
                 # 'roas.csv', change it with the tal name
                 if fname == 'roas.csv.xz':
                     fname = guess_ta_name(url)+".csv"
+                
+                if fname =='output.json.xz':
+                    fname = guess_ta_name(url)+".json"
 
                 if os.path.exists(folder+fname) and not overwrite:
                     continue
+                flag =0
+                if "/20" in url:
+                    date_part_start = url.find('/20')  # Find the starting index of the date part
+                    date_part = url[date_part_start + 1:date_part_start + 11]  # Extract the date substring (e.g., '2023/01/06')
+
+                    try:
+                        url_date = datetime.strptime(date_part, '%Y/%m/%d')  # Convert extracted date to a datetime object
+                        target_date = datetime(2023, 10, 1)  # October 1, 2023
+
+                        if url_date < target_date:
+                            if "json.xz" in url:
+                                continue
+                            flag=1
+                        else:
+                            pass
+                    
+                    except ValueError:
+                        return 'Date not found in the URL.'
 
                 sys.stderr.write(f'Downloading: {url}\n')
         
@@ -479,10 +523,26 @@ class ROV(object):
                             with lzma.open(BytesIO(response.read())) as r:
                                 with open(folder+fname, 'wb') as f:
                                     shutil.copyfileobj(r,f)
+                            if flag==1:
+                                
+
+                                # Write JSON file
+                                fname=fname.replace('csv', 'json')
+                                download_csv_xz_and_convert_to_json(url,folder+fname,fname)
+                                    
+                                    
+                    
+                    # decompress json.xz to json
+                    elif "output.json.xz":
+                        with closing(request.urlopen(url)) as response:
+                            with lzma.open(BytesIO(response.read())) as r:
+                                json_data = json.loads(r.read().decode('utf-8'))
+                                with open(folder+fname, 'w') as f:
+                                    json.dump(json_data, f, indent=4)
+                                    shutil.copyfileobj(r,f)
                     else:
                         with closing(request.urlopen(url)) as r:
                             with open(folder+fname, 'wb') as f:
                                 shutil.copyfileobj(r, f)
                 except urllib.error.URLError:
                     sys.stderr.write(f'Error {url} is not available.\n')
-                    
