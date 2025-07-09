@@ -2,7 +2,9 @@ jobs:
   pypi-publish:
     name: upload release to PyPI
     runs-on: ubuntu-latest
-    environment: pypi  # Optional, but recommended
+    environment: 
+      name: pypi
+      url: https://pypi.org/p/rov
     permissions:
       id-token: write # Required for Trusted Publishing
     steps:
