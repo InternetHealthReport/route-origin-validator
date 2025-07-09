@@ -31,28 +31,30 @@ DELEGATED_FNAME = '*-stats'
 DEFAULT_IRR_URLS = [
         # RADB
         'ftp://ftp.radb.net/radb/dbase/altdb.db.gz',
-        'ftp://ftp.radb.net/radb/dbase/aoltw.db.gz',
+        #'ftp://ftp.radb.net/radb/dbase/aoltw.db.gz',
         #'ftp://ftp.radb.net/radb/dbase/arin-nonauth.db.gz',
         #'ftp://ftp.radb.net/radb/dbase/arin.db.gz',
         'ftp://ftp.radb.net/radb/dbase/bboi.db.gz',
         'ftp://ftp.radb.net/radb/dbase/bell.db.gz',
         'ftp://ftp.radb.net/radb/dbase/canarie.db.gz',
-        'ftp://ftp.radb.net/radb/dbase/easynet.db.gz',
+        #'ftp://ftp.radb.net/radb/dbase/easynet.db.gz',
+        'ftp://irr-mirror.idnic.net/idnic.db.gz',
         'ftp://ftp.radb.net/radb/dbase/jpirr.db.gz',
-        'ftp://ftp.radb.net/radb/dbase/level3.db.gz',
+        #'ftp://ftp.radb.net/radb/dbase/level3.db.gz',
+        'ftp://rr.Level3.net/level3.db.gz',
         'ftp://ftp.radb.net/radb/dbase/nestegg.db.gz',
         'ftp://ftp.radb.net/radb/dbase/nttcom.db.gz',
-        'ftp://ftp.radb.net/radb/dbase/openface.db.gz',
-        'ftp://ftp.radb.net/radb/dbase/ottix.db.gz',
+        #'ftp://ftp.radb.net/radb/dbase/openface.db.gz',
+        #'ftp://ftp.radb.net/radb/dbase/ottix.db.gz',
         'ftp://ftp.radb.net/radb/dbase/panix.db.gz',
         'ftp://ftp.radb.net/radb/dbase/radb.db.gz',
         'ftp://ftp.radb.net/radb/dbase/reach.db.gz',
-        'ftp://ftp.radb.net/radb/dbase/rgnet.db.gz',
-        'ftp://ftp.radb.net/radb/dbase/risq.db.gz',
-        'ftp://ftp.radb.net/radb/dbase/rogers.db.gz',
+        #'ftp://ftp.radb.net/radb/dbase/rgnet.db.gz',
+        #'ftp://ftp.radb.net/radb/dbase/risq.db.gz',
+        #'ftp://ftp.radb.net/radb/dbase/rogers.db.gz',
         'ftp://ftp.radb.net/radb/dbase/tc.db.gz',
         # RIRs
-        'https://ftp.arin.net/pub/rr/arin-nonauth.db.gz',
+        #'https://ftp.arin.net/pub/rr/arin-nonauth.db.gz',
         'https://ftp.arin.net/pub/rr/arin.db.gz',
         'ftp://ftp.afrinic.net/pub/dbase/afrinic.db.gz',
         'ftp://ftp.apnic.net/pub/apnic/whois/apnic.db.route.gz',
@@ -317,11 +319,11 @@ class ROV(object):
                                 rec[field] += '\n'+line
                                 continue
 
-                            rnode = self.roas['irr'].search_exact(rec['route'])
                             try:
+                                rnode = self.roas['irr'].search_exact(rec['route'])
                                 asn = int(rec['origin'][2:].partition('#')[0])
                             except ValueError:
-                                sys.stderr.write(f'Error in {fname}, invalid ASN!\n{rec}\n')
+                                sys.stderr.write(f'Error in {fname}, invalid ASN or route!\n{rec}\n')
                                 continue
 
                             if rnode is None:
